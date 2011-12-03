@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="hello">Hello World, TestWebView_ASActivity!</string>
+    <string name="app_name">TestWebView_AS</string>
+    <string name="loading">cargando</string>
+    <string name="futbol">Fútbol</string>
+    <string name="baloncesto">Baloncesto</string>
+    <string name="masdeporte">Más deporte</string>
+
+</resources>

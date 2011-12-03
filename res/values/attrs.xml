@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="StyledWebView">
+        <attr format="string" name="url" />
+        <attr format="string" name="css" />
+    </declare-styleable>
+
+</resources>
