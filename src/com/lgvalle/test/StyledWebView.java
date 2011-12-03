@@ -10,7 +10,6 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Iterator;
 
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -22,21 +21,16 @@ import android.webkit.WebView;
 public class StyledWebView extends WebView {
 
     private static final String TAG              = "AsSamsung";
-    private static final String CSS_FILE         = "resultados.css";
-    private static final int    INITIAL_ZOOM     = 120;             // En tanto por ciento
-    private static final String DEFAULT_ENCODING = "ISO-8859-1";
+    public static String mDefaultEncoding = "UTF-8";
     private Context             mContext;
-    
-    private String mCss;
-    private String mUrl;
+    private String mCss, mUrl;
 
     public StyledWebView(Context context, AttributeSet attrs) {
         super(context, attrs);
         mContext = context;
-        this.setHorizontalScrollBarEnabled(false);
+        this.setHorizontalScrollBarEnabled(true);
         this.getSettings().setJavaScriptEnabled(true);
-        this.setInitialScale(INITIAL_ZOOM);
-        this.getSettings().setBuiltInZoomControls(false);
+        this.getSettings().setBuiltInZoomControls(true);
 
         // Read custom attributes
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.StyledWebView);
@@ -44,76 +38,49 @@ public class StyledWebView extends WebView {
         mCss = a.getString(R.styleable.StyledWebView_css);
         mUrl = a.getString(R.styleable.StyledWebView_url);
 
-        Log.d(TAG, "URL: "+mUrl);
-        Log.d(TAG, "CSS: "+mCss);
         a.recycle();
         
         loadUrl(mUrl);
+    }
+    
+
+    /**
+     * Complete delete everything in the webview.
+     * Is needed to repaint 
+     */
+    public void clean() {
+        super.loadUrl("javascript:document.getElementsByTagName('body')[0].innerHTML='';");
 
     }
 
     /**
-     * Descarga la web pasada como par‡metro y concatena estilos antes de mostrarla
+     * Download url content, store it as a file and concat styles
      */
     @Override
     public void loadUrl(String url) {
-    	setInitialScale(INITIAL_ZOOM);
-    	
     	String page = WGet(url);
     	String css = buildCss();
     	page = injectCss(page, css);
-    	page = page.replaceAll("\"", "\\\"");
-    	
-    	File cacheDir = mContext.getCacheDir();
-        File styledUrl = new File(cacheDir, "url.html");
-
-        FileOutputStream fos;
-		try {
-			fos = new FileOutputStream(styledUrl);
-	        fos.write(page.toString().getBytes());
-	        fos.close();
-
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-       
-        
-    	
-        //String composedUrl = "javascript:document.write(\"" +page + "\");";
-        //Log.d(TAG, "loadUrl: "+composedUrl);
-		
-		String styledUrlPath = styledUrl.getAbsolutePath();
-		Log.d(TAG, "loadUrl: "+styledUrlPath);
-        super.loadUrl("file:///"+styledUrlPath);
-    }
-
-    private String injectCss(String page, String css) {
-		int headEnd = page.indexOf("</head>");
-		String prev = page.substring(0, headEnd);
-		String post = page.substring(headEnd, page.length());
-		String res = prev + css + post;
-		return res;
-	}
-
-	/**
-     * Captura todos los clicks sobre la webView y no hace nada con ellos. Evita zoom, navegaci—n,
-     * etc.
-     */
-    @Override
-    public boolean onTouchEvent(MotionEvent ev) {
-         return super.onTouchEvent(ev);
-        //return true;
+		super.loadDataWithBaseURL(url, page, null, mDefaultEncoding, null);
     }
 
     /**
-     * Obtiene el contenido de una URL y lo devuelve como string
-     * 
-     * @param webUrl
-     *            Url a descargar
+     * Concatenates CSS rules to given page content
+     * @return Concatenation result
+     */
+    private String injectCss(String page, String css) {
+		int headEnd = page.indexOf("</head>");
+		String res = "";
+		if (headEnd > 0) {
+			res = page.substring(0, headEnd) + css + page.substring(headEnd, page.length());	
+		} else {
+			res = "<head>" + css + "</head>" + page;
+		}
+		return res;
+	}
+
+    /**
+     * Fetches url content and returns it as string
      */
     private String WGet(String webUrl) {
         StringBuilder total = new StringBuilder();
@@ -123,11 +90,9 @@ public class StyledWebView extends WebView {
             InputStream is = connection.getInputStream();
             String encoding = connection.getContentEncoding();
             if (encoding == null) {
-                encoding = DEFAULT_ENCODING;
+                encoding = mDefaultEncoding;
             }
-
             BufferedReader r = new BufferedReader(new InputStreamReader(is, encoding));
-
             String line;
             while ((line = r.readLine()) != null) {
                 total.append(line);
@@ -136,16 +101,19 @@ public class StyledWebView extends WebView {
             e.printStackTrace();
         }
 
-        Log.d(TAG, "Wget result: " + total.toString());
         return total.toString();
     }
 
+    /**
+     * Read CSS file from assets
+     * @return String with the format '<style> xxxx </style>'
+     */
     private String buildCss() {
         StringBuilder contents = new StringBuilder();
 
         InputStreamReader reader;
         try {
-            reader = new InputStreamReader(mContext.getAssets().open(mCss), "UTF-8");
+            reader = new InputStreamReader(mContext.getAssets().open(mCss), mDefaultEncoding);
             BufferedReader br = new BufferedReader(reader);
 
             String line;
@@ -162,9 +130,9 @@ public class StyledWebView extends WebView {
 
     }
 
-    public void clean() {
-        super.loadUrl("javascript:document.getElementsByTagName('body')[0].innerHTML='';");
-
+    
+    public void setDefaultEncoding(String encoding) {
+    	mDefaultEncoding = encoding;
     }
 
 
